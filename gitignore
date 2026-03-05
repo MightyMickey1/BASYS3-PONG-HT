@@ -1,0 +1,8 @@
+*.cache
+*.log
+*.jou
+*.runs
+*.cache/wt
+*.hw
+*.runs
+vivado_pid15312.str
