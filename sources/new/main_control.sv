@@ -53,16 +53,28 @@ reg video_on;
 
 //signal clk_50 :std_logic;
 reg clk_50;
+reg clk_25175;
+
+logic clk_locked;
 
 
 //Vivado CLK wizzard to create 50MHz clock 
-clk_wiz_0(clk_50, reset, clk);
+// clk_wiz_0(clk_50, reset, clk);
+
+//Vivado CLK wizzard to create ~25.175MHz clock
+clk_wiz_1 u_clk_wiz (
+        .clk_in1 (clk),        // 100 MHz input from Basys3
+        .reset   (reset),      // active-high reset (matches your screenshot setting)
+        .clk_out1(clk_25175),  // ~25.175 MHz pixel clock
+        .clk_out2(clk_50),
+        .locked  (clk_locked)
+    );
 
 //Module to create animations
 anim_gen(clk_50, reset, x_control,start_ball, bottom_button_l, bottom_button_r,top_button_l,top_button_r, y_control, video_on, rgb, score_checker1, score_checker2);
 
 //vga synchronization module to update changing pixels and refresh the display
-sync_mod(clk_50, reset, start, y_control, x_control, horizontal_sync, vertical_sync, video_on);
+sync_mod(clk_25175, reset, start, y_control, x_control, horizontal_sync, vertical_sync, video_on);
 
 //if score checker1 is enabled that means player 1(topbar) scored, so update  his score
 always_ff @(posedge clk_50, posedge reset)
