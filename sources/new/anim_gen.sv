@@ -111,8 +111,8 @@ reg[2:0] rgb_reg;
 // x,y pixel cursor
 wire[2:0] rgb_next; 
 
-// --- CHEAT: 4x bottom right presses toggles faster ball speed ---
-reg fast_mode;
+// future release: Difficulty changes with time, faster ball speed ---
+reg difficulty;
 
 // edge detect for buttons
 reg prev_br, prev_bl, prev_tr, prev_tl;
@@ -125,10 +125,10 @@ wire ev_tl = top_button_l    & ~prev_tl;
 reg [2:0] br_streak;        // counts 0..4
 reg [7:0] br_timeout;       // timeout between presses (refresh ticks)
 
-// speed magnitude used by the ball (normal vs fast)
+// future release: speed magnitude used by the ball (normal vs fast)
 integer speed_mag;
 always @(*) begin
-    speed_mag = fast_mode ? 6 : 3;  // normal=3, fast=6
+    speed_mag = difficulty ? 6 : 3;  // normal=3, fast=6
 end
 
 initial
@@ -144,7 +144,7 @@ initial
     bottombar_l = 260;
     topbar_l_next = 260;
     topbar_l = 260;
-    fast_mode = 1'b0;
+    difficulty = 1'b0;
     prev_br = 1'b0; prev_bl = 1'b0; prev_tr = 1'b0; prev_tl = 1'b0;
     br_streak = 3'd0;
     br_timeout = 8'd0;
@@ -165,13 +165,13 @@ assign refresh_next = refresh_reg === refresh_constant ? 0 :
 assign refresh_rate = refresh_reg === 0 ? 1'b 1 : 
 	1'b 0; 
 	
-// --- cheat detector: 4x bottom_button_r presses in a row ---
+// future release: difficulty logic
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         prev_br <= 1'b0; prev_bl <= 1'b0; prev_tr <= 1'b0; prev_tl <= 1'b0;
         br_streak <= 3'd0;
         br_timeout <= 8'd0;
-        fast_mode <= 1'b0;
+        difficulty <= 1'b0;
     end else begin
         // capture previous states for rising-edge detection
         prev_br <= bottom_button_r;
@@ -204,7 +204,7 @@ always @(posedge clk or posedge reset) begin
             br_timeout <= 0;
             if (br_streak == 3'd2) begin
                 br_streak <= 0;
-                fast_mode <= ~fast_mode;   // TOGGLE SPEED HERE
+                difficulty <= ~difficulty;   // TOGGLE SPEED HERE
             end else begin
                 br_streak <= br_streak + 1;
             end
