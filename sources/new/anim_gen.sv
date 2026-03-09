@@ -111,8 +111,9 @@ reg[2:0] rgb_reg;
 // x,y pixel cursor
 wire[2:0] rgb_next; 
 
-// --- CHEAT: 4x bottom right presses toggles faster ball speed ---
-reg fast_mode;
+// future release: Difficulty changes with time, faster ball speed ---
+reg prev_diff;
+reg difficulty;
 
 // edge detect for buttons
 reg prev_br, prev_bl, prev_tr, prev_tl;
@@ -125,10 +126,10 @@ wire ev_tl = top_button_l    & ~prev_tl;
 reg [2:0] br_streak;        // counts 0..4
 reg [7:0] br_timeout;       // timeout between presses (refresh ticks)
 
-// speed magnitude used by the ball (normal vs fast)
+// future release: speed magnitude used by the ball (normal vs fast)
 integer speed_mag;
 always @(*) begin
-    speed_mag = fast_mode ? 6 : 3;  // normal=3, fast=6
+    speed_mag = difficulty ? 6 : 3;  // normal=3, fast=6
 end
 
 initial
@@ -144,7 +145,7 @@ initial
     bottombar_l = 260;
     topbar_l_next = 260;
     topbar_l = 260;
-    fast_mode = 1'b0;
+    difficulty = 1'b0;
     prev_br = 1'b0; prev_bl = 1'b0; prev_tr = 1'b0; prev_tl = 1'b0;
     br_streak = 3'd0;
     br_timeout = 8'd0;
@@ -160,18 +161,16 @@ always @(posedge clk)
    end
 
 //assigning refresh logics.
-assign refresh_next = refresh_reg === refresh_constant ? 0 : 
-	refresh_reg + 1; 
-assign refresh_rate = refresh_reg === 0 ? 1'b 1 : 
-	1'b 0; 
+assign refresh_next = refresh_reg === refresh_constant ? 0 : refresh_reg + 1; 
+assign refresh_rate = refresh_reg === 0 ? 1'b 1 : 1'b 0; 
 	
-// --- cheat detector: 4x bottom_button_r presses in a row ---
+// future release: difficulty logic
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         prev_br <= 1'b0; prev_bl <= 1'b0; prev_tr <= 1'b0; prev_tl <= 1'b0;
         br_streak <= 3'd0;
         br_timeout <= 8'd0;
-        fast_mode <= 1'b0;
+        difficulty <= 1'b0;
     end else begin
         // capture previous states for rising-edge detection
         prev_br <= bottom_button_r;
@@ -204,7 +203,7 @@ always @(posedge clk or posedge reset) begin
             br_timeout <= 0;
             if (br_streak == 3'd2) begin
                 br_streak <= 0;
-                fast_mode <= ~fast_mode;   // TOGGLE SPEED HERE
+                difficulty <= ~difficulty;   // TOGGLE SPEED HERE
             end else begin
                 br_streak <= br_streak + 1;
             end
@@ -223,11 +222,17 @@ always @(posedge clk or posedge reset)
       topbar_l <= 260;   
       horizontal_velocity_reg <= 0;   
       vertical_velocity_reg <= 0;  
+      prev_diff <= 1'b0; // reset previous difficulty
       end
    else 
       begin
       horizontal_velocity_reg <= horizontal_velocity_next; //assigns horizontal velocity
       vertical_velocity_reg <= vertical_velocity_next; // assigns vertical velocity
+      
+      if (refresh_rate) begin
+        prev_diff <= difficulty;
+      end
+      
       if (stop_ball === 1'b 1) // throw the ball
          begin
          if (scorer === 1'b 0) // if scorer is not the 1st player throw the ball to 1st player (2nd player scored) .
@@ -237,8 +242,8 @@ always @(posedge clk or posedge reset)
             end
          else // first player scored. Throw the ball to the 2nd player.
             begin
-            horizontal_velocity_reg <= speed_mag;   
-            vertical_velocity_reg <= speed_mag;   
+            horizontal_velocity_reg <= -speed_mag;   
+            vertical_velocity_reg <= -speed_mag;   
             end
          end
       ball_c_l <= ball_c_l_next; //assigns the next value of the ball's location from the left side of the screen to it's location.
@@ -292,8 +297,7 @@ always @(topbar_l or refresh_rate or top_button_r or top_button_l)
    end
 
 // ball animation
-always @(refresh_rate or ball_c_l or ball_c_t or horizontal_velocity_reg or vertical_velocity_reg)
-   begin 
+always @(refresh_rate or ball_c_l or ball_c_t or horizontal_velocity_reg or vertical_velocity_reg or prev_diff or difficulty) begin 
    ball_c_l_next <= ball_c_l;   
    ball_c_t_next <= ball_c_t;   
    scorerNext <= scorer;   
@@ -301,24 +305,44 @@ always @(refresh_rate or ball_c_l or ball_c_t or horizontal_velocity_reg or vert
    vertical_velocity_next <= vertical_velocity_reg;   
    scoreChecker1 <= 1'b 0; //1st player did not scored, default value
    scoreChecker2 <= 1'b 0; //2st player did not scored, default value  
-   if (refresh_rate === 1'b 1) // posedge of refresh_rate
-      begin
-      if (ball_c_l >= bottombar_l & ball_c_l <= bottombar_l +120 & ball_c_t >= bottombar_t - 3 & ball_c_t <= bottombar_t + 5) // if ball hits the bottom bar
-         begin
-         vertical_velocity_next <= -speed_mag; // set the direction of vertical velocity positive
-         end
-      else if (ball_c_l >= topbar_l & ball_c_l <= topbar_l + 120 & ball_c_t >= topbar_t + 2 & ball_c_t <= topbar_t + 12 ) // if ball hits the top bar 
-         begin
-         vertical_velocity_next <= speed_mag; //set the direction of vertical velocity positive  
-         end
-      if (ball_c_l < 0) // if the ball hits the left side of the screen
-         begin
-         horizontal_velocity_next <= speed_mag; //set the direction of horizontal velocity positive
-         end
-      else if (ball_c_l > 620 ) // if the ball hits the right side of the screen
-         begin
-         horizontal_velocity_next <= -speed_mag; //set the direction of horizontal velocity negative.
-         end
+   
+   if (refresh_rate === 1'b 1) begin
+      // posedge of refresh_rate
+
+      // poll difficulty change:
+      if (difficulty != prev_diff) begin
+         // if difficulty changed, adjust ball speed while keeping direction
+         if (horizontal_velocity_reg > 0)
+            horizontal_velocity_next <= speed_mag;
+         else if (horizontal_velocity_reg < 0)
+            horizontal_velocity_next <= -speed_mag;
+
+         if (vertical_velocity_reg > 0)
+            vertical_velocity_next <= speed_mag;
+         else if (vertical_velocity_reg < 0)
+            vertical_velocity_next <= -speed_mag;
+      end
+      
+      if (ball_c_l >= bottombar_l & ball_c_l <= bottombar_l +120 & ball_c_t >= bottombar_t - 3 & ball_c_t <= bottombar_t + 5) begin
+         // if ball hits the bottom bar
+         // set the direction of vertical velocity positive
+         vertical_velocity_next <= -speed_mag; 
+      end else if (ball_c_l >= topbar_l & ball_c_l <= topbar_l + 120 & ball_c_t >= topbar_t + 2 & ball_c_t <= topbar_t + 12 ) begin
+         // if ball hits the top bar
+         //set the direction of vertical velocity positive  
+         vertical_velocity_next <= speed_mag; 
+      end
+      
+      if (ball_c_l < 0) begin
+         // if the ball hits the left side of the screen
+         //set the direction of horizontal velocity positive
+         horizontal_velocity_next <= speed_mag; 
+      end else if (ball_c_l > 620 ) begin 
+         // if the ball hits the right side of the screen
+         //set the direction of horizontal velocity negative
+         horizontal_velocity_next <= -speed_mag; 
+      end
+      
       ball_c_l_next <= ball_c_l + horizontal_velocity_reg; //move the ball's horizontal location   
       ball_c_t_next <= ball_c_t + vertical_velocity_reg; // move the ball's vertical location.
       if (ball_c_t >= 477) // if player 1 scores, in other words, ball passes through the vertical location of bottom bar.
