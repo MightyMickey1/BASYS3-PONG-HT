@@ -14,6 +14,8 @@ set_property PACKAGE_PIN V17 [get_ports {start}]
     set_property IOSTANDARD LVCMOS33 [get_ports {start}]
 set_property PACKAGE_PIN V16 [get_ports {reset}]                    
     set_property IOSTANDARD LVCMOS33 [get_ports {reset}]
+set_property PACKAGE_PIN R2 [get_ports {difficulty}]                    
+    set_property IOSTANDARD LVCMOS33 [get_ports {difficulty}]
         
 	
 #Buttons

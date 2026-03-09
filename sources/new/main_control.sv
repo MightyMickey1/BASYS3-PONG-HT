@@ -20,6 +20,7 @@ module main_control(
     input logic clk,
     input logic start,   
     input logic reset,
+    input logic difficulty,
     input logic bottom_button_l,
     input logic bottom_button_r,
     input logic top_button_l,
@@ -71,7 +72,7 @@ clk_wiz_1 u_clk_wiz (
     );
 
 //Module to create animations
-anim_gen(clk_50, reset, x_control,start_ball, bottom_button_l, bottom_button_r,top_button_l,top_button_r, y_control, video_on, rgb, score_checker1, score_checker2);
+anim_gen(clk_50, reset, difficulty, x_control,start_ball, bottom_button_l, bottom_button_r,top_button_l,top_button_r, y_control, video_on, rgb, score_checker1, score_checker2);
 
 //vga synchronization module to update changing pixels and refresh the display
 sync_mod(clk_25175, reset, start, y_control, x_control, horizontal_sync, vertical_sync, video_on);

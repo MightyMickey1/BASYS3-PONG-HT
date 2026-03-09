@@ -18,6 +18,7 @@
 module anim_gen (
    clk,
    reset,
+   diff,
    x_control,
    stop_ball,
    bottom_button_l,
@@ -33,6 +34,7 @@ module anim_gen (
 
 input clk; 
 input reset; 
+input diff;
 input[9:0] x_control; 
 input stop_ball; 
 input bottom_button_l; 
@@ -111,7 +113,7 @@ reg[2:0] rgb_reg;
 // x,y pixel cursor
 wire[2:0] rgb_next; 
 
-// future release: Difficulty changes with time, faster ball speed ---
+// difficulty changes with switch, faster ball speed ---
 reg prev_diff;
 reg difficulty;
 
@@ -149,6 +151,7 @@ initial
     prev_br = 1'b0; prev_bl = 1'b0; prev_tr = 1'b0; prev_tl = 1'b0;
     br_streak = 3'd0;
     br_timeout = 8'd0;
+    prev_diff_in = 1'b0;
    end
 assign x = x_control; 
 assign y = y_control; 
@@ -164,7 +167,9 @@ always @(posedge clk)
 assign refresh_next = refresh_reg === refresh_constant ? 0 : refresh_reg + 1; 
 assign refresh_rate = refresh_reg === 0 ? 1'b 1 : 1'b 0; 
 	
-// future release: difficulty logic
+
+// difficulty logic
+reg prev_diff_in;
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         prev_br <= 1'b0; prev_bl <= 1'b0; prev_tr <= 1'b0; prev_tl <= 1'b0;
@@ -177,6 +182,7 @@ always @(posedge clk or posedge reset) begin
         prev_bl <= bottom_button_l;
         prev_tr <= top_button_r;
         prev_tl <= top_button_l;
+        prev_diff_in <= diff;
 
         // optional timeout: counts in refresh ticks while building streak
         if (refresh_rate) begin
@@ -199,9 +205,9 @@ always @(posedge clk or posedge reset) begin
         end
 
         // count bottom-right presses
-        if (ev_br) begin
+        if (ev_br || prev_diff_in != diff) begin
             br_timeout <= 0;
-            if (br_streak == 3'd2) begin
+            if (br_streak == 3'd2 || prev_diff_in != diff) begin
                 br_streak <= 0;
                 difficulty <= ~difficulty;   // TOGGLE SPEED HERE
             end else begin
