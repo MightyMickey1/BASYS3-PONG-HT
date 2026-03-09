@@ -17,14 +17,14 @@ set_property PACKAGE_PIN V16 [get_ports {reset}]
         
 	
 #Buttons
-set_property PACKAGE_PIN W19 [get_ports top_button_l]						
+set_property PACKAGE_PIN W19 [get_ports bottom_button_l]						
+	set_property IOSTANDARD LVCMOS33 [get_ports bottom_button_l]
+set_property PACKAGE_PIN T17 [get_ports top_button_l]						
 	set_property IOSTANDARD LVCMOS33 [get_ports top_button_l]
-set_property PACKAGE_PIN T17 [get_ports bottom_button_r]						
-	set_property IOSTANDARD LVCMOS33 [get_ports bottom_button_r]
 set_property PACKAGE_PIN T18 [get_ports top_button_r]						
         set_property IOSTANDARD LVCMOS33 [get_ports top_button_r]
-set_property PACKAGE_PIN U17 [get_ports bottom_button_l]  	 	 	 	 	 
-             set_property IOSTANDARD LVCMOS33 [get_ports bottom_button_l] 
+set_property PACKAGE_PIN U17 [get_ports bottom_button_r]  	 	 	 	 	 
+             set_property IOSTANDARD LVCMOS33 [get_ports bottom_button_r] 
              set_property PACKAGE_PIN U18 [get_ports start_ball]  	 	 	 	 	 
                           set_property IOSTANDARD LVCMOS33 [get_ports start_ball] 
 
